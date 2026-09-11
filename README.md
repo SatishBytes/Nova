@@ -233,15 +233,6 @@ The Express authentication middleware validates the token before allowing access
 
 ---
 
-## Project Progress
-
-The dashboard provides a progress tracker based on the number of completed tasks compared to the total number of tasks in a project.
-
-```text
-Completed Tasks / Total Tasks × 100
-```
-
----
 
 ## Deployment Links
 
@@ -260,10 +251,7 @@ https://github.com/SatishBytes/Nova
 
 **Satish Yadav**
 
-Full Stack Development Intern Assignment
+Full Stack Development 
 
 ---
 
-## License
-
-This project was created for educational and internship assignment purposes.
