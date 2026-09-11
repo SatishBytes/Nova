@@ -16,9 +16,9 @@ app.use(express.json());
 (async () => {
   const { data, error } = await supabase.from('projects').select('*').limit(1);
   if (error) {
-    console.log('❌ Supabase connection failed:', error.message);
+    console.log(' Supabase connection failed:', error.message);
   } else {
-    console.log('✅ Supabase connected successfully!');
+    console.log(' Supabase connected successfully!');
   }
 })();
 
