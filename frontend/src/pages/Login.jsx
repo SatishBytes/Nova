@@ -29,39 +29,59 @@ const Login = () => {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto' }}>
-      <h2>{isSignup ? 'Sign Up' : 'Login'}</h2>
-
-      <form onSubmit={handleSubmit}>
-        <div>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold text-slate-900">NOVA</h1>
+          <p className="text-sm text-slate-500 mt-1">Plan. Collaborate. Deliver.</p>
         </div>
 
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+          <h2 className="text-lg font-medium text-slate-900 mb-4">
+            {isSignup ? 'Create an account' : 'Welcome back'}
+          </h2>
 
-        <button type="submit" disabled={loading}>
-          {loading ? 'Please wait...' : isSignup ? 'Sign Up' : 'Login'}
-        </button>
-      </form>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
 
-      <p onClick={() => setIsSignup(!isSignup)} style={{ cursor: 'pointer', color: 'blue' }}>
-        {isSignup ? 'Already have an account? Login' : "Don't have an account? Sign up"}
-      </p>
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium rounded-lg px-3 py-2 transition-colors"
+            >
+              {loading ? 'Please wait...' : isSignup ? 'Sign up' : 'Login'}
+            </button>
+          </form>
+
+          <p
+            onClick={() => setIsSignup(!isSignup)}
+            className="text-center text-sm text-slate-500 mt-4 cursor-pointer hover:text-indigo-600"
+          >
+            {isSignup ? 'Already have an account? Login' : "Don't have an account? Sign up"}
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

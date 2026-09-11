@@ -36,15 +36,22 @@ const getTasksByProject = async (req, res) => {
 
 const updateTaskStatus = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, progress } = req.body;
+
+  console.log('Received update:', { id, status, progress });
+
+  const updateData = {};
+  if (status !== undefined) updateData.status = status;
+  if (progress !== undefined) updateData.progress = progress;
 
   const { data, error } = await supabase
     .from('tasks')
-    .update({ status })
+    .update(updateData)
     .eq('id', id)
     .select();
 
   if (error) {
+    console.log('Supabase update error:', error);
     return res.status(500).json({ error: error.message });
   }
 
