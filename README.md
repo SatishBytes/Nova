@@ -4,33 +4,34 @@
 
 NOVA is a full-stack project management platform that helps teams create projects, manage tasks, collaborate with team members, and track project progress.
 
-This project was built as part of a **Full Stack Development**, covering frontend development, backend APIs, authentication, database integration, and deployment.
+This project was built as part of **`<course/program name>`**, covering frontend development, backend APIs, authentication, database integration, and deployment.
 
 ---
 
 ## Live Demo
 
-* **Frontend:** (https://nova-pearl-beta.vercel.app/)
+* **Frontend:** [https://nova-eta-swart.vercel.app](https://nova-eta-swart.vercel.app)
 * **Backend:** [https://nova-backend-6p9a.onrender.com](https://nova-backend-6p9a.onrender.com/)
-* **GitHub:** https://github.com/SatishBytes/Nova
+* **GitHub:** [https://github.com/SatishBytes/Nova](https://github.com/SatishBytes/Nova)
+
+### Screenshots
+
+Replace these placeholders with screenshots saved under `screenshots/`:
+
+![NOVA dashboard screenshot](./screenshots/dashboard.png)
+![NOVA project tasks screenshot](./screenshots/project-tasks.png)
+![NOVA login screenshot](./screenshots/login.png)
 
 ---
 
 ## Features
 
-* User Signup & Login
-* JWT-based Authentication
-* Protected Dashboard Routes
-* Create, View & Delete Projects
-* Create Tasks inside Projects
-* Update Task Status
-
-  * To Do
-  * In Progress
-  * Done
-* Delete Tasks
-
-* Frontend & Backend Deployment
+* User signup and login
+* JWT-based authentication and protected dashboard routes
+* Create, view, and delete projects
+* Create tasks inside projects
+* Update task status (To Do, In Progress, Done)
+* Track task progress and delete tasks
 
 ---
 
@@ -148,6 +149,7 @@ Create a `.env` file inside the `backend` folder:
 SUPABASE_URL=your-supabase-url
 SUPABASE_KEY=your-supabase-secret-key
 PORT=5000
+FRONTEND_URL=http://localhost:5173
 ```
 
 Start the backend:
@@ -176,7 +178,7 @@ npm install
 Create a `.env` file inside the `frontend` folder:
 
 ```env
-VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_URL=your-supabase-project-url
 VITE_SUPABASE_KEY=your-supabase-publishable-key
 VITE_API_URL=http://localhost:5000/api
 ```
@@ -213,6 +215,8 @@ The backend is deployed using **Render**.
 Root Directory: backend/
 ```
 
+The Render free plan may take 30–60 seconds to wake up after inactivity.
+
 Environment variables are configured in the respective hosting platforms and are not committed to the repository.
 
 ---
@@ -234,19 +238,6 @@ The Express authentication middleware validates the token before allowing access
 ---
 
 
-## Deployment Links
-
-**Live Application:**
-https://nova-eta-swart.vercel.app
-
-**Backend API:**
-https://nova-backend-6p9a.onrender.com
-
-**Source Code:**
-https://github.com/SatishBytes/Nova
-
----
-
 ## Author
 
 **Satish Yadav**
@@ -254,4 +245,3 @@ https://github.com/SatishBytes/Nova
 Full Stack Development 
 
 ---
-

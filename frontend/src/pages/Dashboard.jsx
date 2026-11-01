@@ -1,14 +1,24 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FolderPlus, Search, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import api from '../api/axiosInstance';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
+import Navbar from '../components/Navbar';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import EmptyState from '../components/ui/EmptyState';
+import Input from '../components/ui/Input';
+import Skeleton from '../components/ui/Skeleton';
 
 const CARD_COLORS = [
-  { bg: 'bg-indigo-100', text: 'text-indigo-700', ring: 'group-hover:ring-indigo-200' },
-  { bg: 'bg-teal-100', text: 'text-teal-700', ring: 'group-hover:ring-teal-200' },
-  { bg: 'bg-amber-100', text: 'text-amber-700', ring: 'group-hover:ring-amber-200' },
-  { bg: 'bg-rose-100', text: 'text-rose-700', ring: 'group-hover:ring-rose-200' },
-  { bg: 'bg-sky-100', text: 'text-sky-700', ring: 'group-hover:ring-sky-200' },
+  'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200',
+  'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200',
+  'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200',
+  'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200',
+  'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200',
 ];
 
 const getGreeting = () => {
@@ -19,221 +29,220 @@ const getGreeting = () => {
 };
 
 const Dashboard = () => {
+  const location = useLocation();
   const [projects, setProjects] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => location.state?.search || '');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
-      const res = await api.get('/projects');
-      setProjects(res.data);
-    } catch (err) {
-      console.error('Error fetching projects:', err);
+      const { data } = await api.get('/projects');
+      setProjects(data);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Unable to load projects. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchProjects();
   }, []);
 
-  const handleCreateProject = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    void Promise.resolve().then(fetchProjects);
+  }, [fetchProjects]);
+
+  const handleCreateProject = async (event) => {
+    event.preventDefault();
     try {
-      await api.post('/projects', { name, description });
+      await api.post('/projects', { name: name.trim(), description: description.trim() });
       setName('');
       setDescription('');
       setShowForm(false);
-      fetchProjects();
-    } catch (err) {
-      console.error('Error creating project:', err);
+      toast.success('Project created');
+      await fetchProjects();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Unable to create project. Please try again.');
     }
   };
 
-  const handleDeleteProject = async (e, projectId) => {
-    e.stopPropagation();
+  const handleDeleteProject = async (event, projectId) => {
+    event.stopPropagation();
     if (!window.confirm('Delete this project? This cannot be undone.')) return;
+
     try {
       await api.delete(`/projects/${projectId}`);
-      fetchProjects();
-    } catch (err) {
-      console.error('Error deleting project:', err);
+      toast.success('Project deleted');
+      await fetchProjects();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Unable to delete project. Please try again.');
     }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
   };
 
   const filteredProjects = useMemo(() => {
     if (!search.trim()) return projects;
-    return projects.filter((p) =>
-      p.name.toLowerCase().includes(search.toLowerCase())
-    );
+    return projects.filter((project) => project.name.toLowerCase().includes(search.toLowerCase()));
   }, [projects, search]);
 
   const firstName = user?.email?.split('@')[0];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-          <p className="text-slate-400 text-sm">Loading your projects...</p>
+      <div className="app-page">
+        <Navbar showUser onSearch={setSearch} />
+        <div className="page-container space-y-5" role="status" aria-label="Loading projects">
+          <Skeleton className="h-9 w-56" />
+          <Skeleton className="h-5 w-72 max-w-full" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-48" />)}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-indigo-600 rounded-md flex items-center justify-center">
-            <span className="text-white text-sm font-semibold">N</span>
-          </div>
-          <h1 className="text-lg font-semibold text-slate-900">NOVA</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-slate-400 hidden sm:block">{user?.email}</span>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-slate-500 hover:text-slate-900 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-      </nav>
+    <div className="app-page">
+      <Navbar showUser onSearch={setSearch} />
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900">
+      <main className="page-container">
+        <header className="mb-8">
+          <h1 className="page-heading">
             {getGreeting()}{firstName ? `, ${firstName}` : ''}
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          </h1>
+          <p className="mt-1 text-sm text-muted">
             {projects.length === 0
               ? "You don't have any projects yet"
               : `${projects.length} project${projects.length > 1 ? 's' : ''} in your workspace`}
           </p>
-        </div>
+        </header>
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-              🔍
-            </span>
-            <input
-              type="text"
+            <Search size={17} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <Input
+              type="search"
               placeholder="Search projects..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg pl-9 pr-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onChange={(event) => setSearch(event.target.value)}
+              aria-label="Search projects"
+              className="pl-10"
             />
           </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg px-4 py-2.5 transition-colors shadow-sm whitespace-nowrap"
+          <Button
+            variant={showForm ? 'secondary' : 'primary'}
+            onClick={() => setShowForm((shown) => !shown)}
           >
-            {showForm ? 'Cancel' : '+ New project'}
-          </button>
+            <FolderPlus size={17} aria-hidden="true" />
+            {showForm ? 'Cancel' : 'New project'}
+          </Button>
         </div>
 
         {showForm && (
-          <form
-            onSubmit={handleCreateProject}
-            className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 mb-8"
-          >
-            <div className="grid sm:grid-cols-2 gap-3 mb-3">
-              <input
-                type="text"
-                placeholder="Project name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                autoFocus
-                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <input
-                type="text"
-                placeholder="Description (optional)"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+          <Card as="form" onSubmit={handleCreateProject} className="mb-8 p-5">
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+              <label className="space-y-1.5 text-sm font-medium text-foreground">
+                Project name
+                <Input
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  autoFocus
+                  maxLength={100}
+                  placeholder="e.g. Website refresh"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm font-medium text-foreground">
+                Description
+                <Input
+                  type="text"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  maxLength={500}
+                  placeholder="What are you working on?"
+                />
+              </label>
             </div>
-            <button
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg px-4 py-2 transition-colors"
-            >
+            <Button type="submit">
+              <FolderPlus size={16} aria-hidden="true" />
               Create project
-            </button>
-          </form>
+            </Button>
+          </Card>
         )}
 
         {projects.length === 0 ? (
-          <div className="text-center py-24 border border-dashed border-slate-300 rounded-xl bg-white/50">
-            <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-indigo-400 text-2xl">+</span>
-            </div>
-            <p className="text-slate-700 text-sm font-medium">No projects yet</p>
-            <p className="text-slate-400 text-sm mt-1 mb-4">Create your first project to get started</p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg px-4 py-2 transition-colors"
-            >
-              + New project
-            </button>
-          </div>
+          <EmptyState
+            icon={FolderPlus}
+            title="A fresh start"
+            description="Create your first project to bring tasks and plans into one focused space."
+            action={(
+              <Button onClick={() => setShowForm(true)}>
+                <FolderPlus size={17} aria-hidden="true" />
+                Create a project
+              </Button>
+            )}
+          />
         ) : filteredProjects.length === 0 ? (
-          <div className="text-center py-16 text-slate-400 text-sm">
-            No projects match "{search}"
-          </div>
+          <EmptyState
+            icon={Search}
+            title="No matching projects"
+            description={`We couldn't find a project matching “${search}”. Try another search.`}
+          />
         ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {filteredProjects.map((project, i) => {
-              const color = CARD_COLORS[i % CARD_COLORS.length];
-              return (
-                <div
-                  key={project.id}
-                  onClick={() => navigate(`/project/${project.id}`)}
-                  className="group bg-white border border-slate-200 rounded-xl p-5 cursor-pointer hover:border-indigo-300 hover:shadow-lg hover:-translate-y-0.5 transition-all"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div
-                      className={`w-11 h-11 rounded-lg ${color.bg} ${color.text} flex items-center justify-center font-semibold ring-4 ring-transparent ${color.ring} transition-all`}
-                    >
-                      {project.name.charAt(0).toUpperCase()}
-                    </div>
-                    <button
-                      onClick={(e) => handleDeleteProject(e, project.id)}
-                      className="text-xs text-slate-300 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all px-2 py-1 rounded-md"
-                    >
-                      Delete
-                    </button>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {filteredProjects.map((project, index) => (
+              <motion.div
+                key={project.id}
+                layout
+                onClick={() => navigate(`/project/${project.id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    if (event.target !== event.currentTarget) return;
+                    event.preventDefault();
+                    navigate(`/project/${project.id}`);
+                  }
+                }}
+                role="link"
+                tabIndex={0}
+                aria-label={`Open project ${project.name}`}
+                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: reduceMotion ? 0 : 0.22, delay: reduceMotion ? 0 : Math.min(index * 0.045, 0.2) }}
+                className="ui-card project-card group"
+              >
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className={`grid h-11 w-11 place-items-center rounded-xl font-semibold ${CARD_COLORS[index % CARD_COLORS.length]}`}>
+                    {project.name.charAt(0).toUpperCase()}
                   </div>
-
-                  <h3 className="font-medium text-slate-900 mb-1">{project.name}</h3>
-                  <p className="text-sm text-slate-500 line-clamp-2 mb-4">
-                    {project.description || 'No description'}
-                  </p>
-
-                  <div className="flex items-center text-xs text-indigo-600 font-medium">
-                    Open project
-                    <span className="ml-1 group-hover:translate-x-1 transition-transform">→</span>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(event) => handleDeleteProject(event, project.id)}
+                    aria-label={`Delete ${project.name}`}
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                    <span className="hidden sm:inline">Delete</span>
+                  </Button>
                 </div>
-              );
-            })}
+
+                <h2 className="mb-1 font-semibold tracking-tight text-foreground">{project.name}</h2>
+                <p className="mb-4 line-clamp-2 min-h-10 text-sm text-muted">
+                  {project.description || 'No description'}
+                </p>
+
+                <div className="flex items-center justify-between">
+                  <Badge tone="primary">Project</Badge>
+                  <span className="text-xs font-semibold text-primary">Open project →</span>
+                </div>
+              </motion.div>
+            ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };
