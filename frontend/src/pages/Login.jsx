@@ -1,16 +1,19 @@
-import { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
-import { ArrowRight, Eye, EyeOff, ListChecks, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { m, useReducedMotion } from 'motion/react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, ListChecks, Sparkles } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../config/supabaseClient';
 import Navbar from '../components/Navbar';
+import usePageTitle from '../hooks/usePageTitle';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import CaptchaWidget from '../components/CaptchaWidget';
 
 const demoEnabled = import.meta.env.VITE_DEMO_LOGIN_ENABLED === 'true'
   && Boolean(import.meta.env.VITE_DEMO_EMAIL)
   && Boolean(import.meta.env.VITE_DEMO_PASSWORD);
+const captchaEnabled = Boolean(import.meta.env.VITE_CAPTCHA_SITE_KEY);
 
 const Login = () => {
   const [isSignup, setIsSignup] = useState(false);
@@ -20,8 +23,19 @@ const Login = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
+  usePageTitle(isSignup ? 'Create account' : 'Sign in');
+
+  const handleCaptchaVerify = useCallback((token) => setCaptchaToken(token), []);
+  const passwordStrength = [
+    password.length >= 8,
+    /[a-z]/.test(password) && /[A-Z]/.test(password),
+    /\d/.test(password),
+    /[^a-zA-Z0-9]/.test(password),
+  ].filter(Boolean).length;
 
   const authenticate = async (emailValue, passwordValue, signup = isSignup) => {
     setError('');
@@ -30,13 +44,21 @@ const Login = () => {
 
     try {
       const { data, error: authError } = signup
-        ? await supabase.auth.signUp({ email: emailValue, password: passwordValue })
+        ? await supabase.auth.signUp({
+          email: emailValue,
+          password: passwordValue,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            ...(captchaToken ? { captchaToken } : {}),
+          },
+        })
         : await supabase.auth.signInWithPassword({ email: emailValue, password: passwordValue });
 
       if (authError) {
         setError(authError.message);
       } else if (signup && !data.session) {
-        setMessage('Check your email to confirm your account.');
+        window.sessionStorage.setItem('nova-confirm-email', emailValue);
+        navigate('/check-email', { state: { email: emailValue } });
       } else {
         navigate('/dashboard');
       }
@@ -56,8 +78,18 @@ const Login = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (isSignup && password.length < 8) {
+      setError('Use at least 8 characters for your password.');
+      return;
+    }
+
+    if (isSignup && !termsAccepted) {
+      setError('Please agree to the Terms and Privacy Policy to create an account.');
+      return;
+    }
+
+    if (isSignup && captchaEnabled && !captchaToken) {
+      setError('Complete the human verification to create your account.');
       return;
     }
 
@@ -82,20 +114,20 @@ const Login = () => {
               <Sparkles size={15} aria-hidden="true" />
               A calmer way to get work done
             </div>
-            <motion.h1
+            <m.h1
               initial={reduceMotion ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: reduceMotion ? 0 : 0.3, ease: 'easeOut' }}
               className="max-w-lg text-4xl font-semibold leading-[1.08] tracking-[-0.05em] sm:text-5xl"
             >
-              Make space for your best work.
-            </motion.h1>
+              Plan. Collaborate. Deliver.
+            </m.h1>
             <p className="mt-5 max-w-md text-base leading-7 text-white">
-              Bring projects, tasks, and your team into one focused workspace. Plan clearly and keep momentum.
+              Keep projects and people aligned in one calm, focused workspace.
             </p>
           </div>
 
-          <motion.div
+          <m.div
             initial={reduceMotion ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.35, delay: reduceMotion ? 0 : 0.08 }}
@@ -132,12 +164,13 @@ const Login = () => {
               <span className="text-xs font-semibold">67%</span>
               <ListChecks size={17} aria-hidden="true" />
             </div>
-          </motion.div>
+          </m.div>
         </section>
 
         <section className="login-form-panel">
           <div className="w-full max-w-md">
             <div className="mb-7">
+              <Link to="/" className="login-back-home"><ArrowLeft size={14} aria-hidden="true" />Back to home</Link>
               <p className="text-sm font-semibold text-primary">WELCOME TO NOVA</p>
               <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-foreground">
                 {isSignup ? 'Create your account' : 'Welcome back'}
@@ -172,7 +205,7 @@ const Login = () => {
                     <label htmlFor="password" className="text-sm font-medium text-foreground">
                       Password
                     </label>
-                    <span className="text-xs text-muted">6 characters minimum</span>
+                    <span className="text-xs text-muted">{isSignup ? '8 characters minimum' : 'Enter your password'}</span>
                   </div>
                   <div className="relative">
                     <Input
@@ -200,8 +233,24 @@ const Login = () => {
                         : <Eye size={17} aria-hidden="true" />}
                     </Button>
                   </div>
+                  {isSignup && password && (
+                    <p className="mt-1 text-xs text-muted" aria-live="polite">
+                      Password strength: {passwordStrength <= 1 ? 'needs work' : passwordStrength <= 2 ? 'fair' : passwordStrength === 3 ? 'good' : 'strong'}
+                    </p>
+                  )}
                 </div>
 
+                {isSignup && (
+                  <>
+                    <CaptchaWidget onVerify={handleCaptchaVerify} />
+                    <label className="flex items-start gap-2 text-xs leading-5 text-muted">
+                      <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} />
+                      <span>By signing up, you agree to the <Link className="text-primary underline" to="/terms">Terms</Link> and <Link className="text-primary underline" to="/privacy">Privacy Policy</Link>.</span>
+                    </label>
+                  </>
+                )}
+
+                {!isSignup && <Link className="block text-right text-sm font-medium text-primary hover:underline" to="/forgot-password">Forgot password?</Link>}
                 {error && <p role="alert" className="alert-error">{error}</p>}
                 {message && (
                   <p role="status" className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-800 dark:text-emerald-200">
@@ -237,6 +286,13 @@ const Login = () => {
               >
                 {isSignup ? 'Sign in' : 'Create an account'}
               </button>
+            </p>
+            <p className="mt-4 text-center text-xs text-muted">
+              <Link className="hover:text-primary hover:underline" to="/privacy">Privacy</Link>
+              <span className="mx-2">·</span>
+              <Link className="hover:text-primary hover:underline" to="/terms">Terms</Link>
+              <span className="mx-2">·</span>
+              <a className="hover:text-primary hover:underline" href="mailto:<support-email-placeholder>">Support</a>
             </p>
           </div>
         </section>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f8fb" />
+    <title>NOVA — Offline</title>
+    <style>
+      :root { color-scheme: light dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      body { display: grid; min-height: 100vh; margin: 0; place-items: center; background: #f7f8fb; color: #172033; }
+      main { width: min(28rem, calc(100% - 2rem)); padding: 2rem; border: 1px solid #e3e7ef; border-radius: 1rem; background: white; text-align: center; }
+      button { margin-top: 1rem; padding: .7rem 1rem; border: 0; border-radius: .6rem; background: #5146e5; color: white; font: inherit; cursor: pointer; }
+      @media (prefers-color-scheme: dark) { body { background: #11141d; color: #edf0f7; } main { border-color: #343c4e; background: #191e2a; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>You’re offline</h1>
+      <p>NOVA needs a connection to load your workspace. Your private project data is never cached offline.</p>
+      <button type="button" onclick="window.location.reload()">Retry connection</button>
+    </main>
+  </body>
+</html>

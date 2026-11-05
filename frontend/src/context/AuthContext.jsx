@@ -7,10 +7,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data?.session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data }) => setUser(data?.session?.user ?? null))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -21,8 +21,9 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const logout = async (options) => {
+    const { error } = await supabase.auth.signOut(options);
+    if (error) throw error;
   };
 
   return (

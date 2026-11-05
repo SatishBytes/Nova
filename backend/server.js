@@ -1,60 +1,57 @@
 require('dotenv').config();
 
-const express = require('express');
-const cors = require('cors');
-const supabase = require('./config/supabaseClient');
-
-const projectRoutes = require('./routes/projects');
-const taskRoutes = require('./routes/tasks');
-const teamRoutes = require('./routes/team');
-
-const app = express();
-
-const allowedOrigins = [
-  'https://nova-eta-swart.vercel.app',
-  'https://nova-pearl-beta.vercel.app',
-  'http://localhost:5173',
-  ...(process.env.FRONTEND_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean)
-];
-
-app.use(cors({
-  origin: (origin, callback) => callback(null, !origin || allowedOrigins.includes(origin))
-}));
-app.use(express.json());
-
-(async () => {
-  const { data, error } = await supabase.from('projects').select('*').limit(1);
-  if (error) {
-<<<<<<< HEAD
-    console.log(' Supabase connection failed:', error.message);
-  } else {
-    console.log(' Supabase connected successfully!');
-=======
-    console.error('Supabase connection failed:', {
-      message: error.message,
-      code: error.code,
-      status: error.status
-    });
-  } else {
-    console.log('Supabase connected successfully');
->>>>>>> 5da444b (design system, theme, motion)
+const startServer = () => {
+  const required = ['SUPABASE_URL', 'SUPABASE_KEY'];
+  if (process.env.AI_ENABLED === 'true') required.push('ANTHROPIC_API_KEY');
+  const missing = required.filter((name) => !process.env[name]);
+  if (missing.length) {
+    process.stderr.write(`${JSON.stringify({
+      level: 'error',
+      event: 'startup_configuration_error',
+      missing_environment_variables: missing,
+    })}\n`);
+    process.exitCode = 1;
+    return null;
   }
-})();
 
-app.use('/api/projects', projectRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/team', teamRoutes);
+  const app = require('./app');
+  const supabase = require('./config/supabaseClient');
 
-app.get('/', (req, res) => {
-  res.send('NOVA backend is running');
-});
+  (async () => {
+    const { data, error } = await supabase.from('projects').select('*').limit(1);
+    if (error) {
+      console.log(' Supabase connection failed:', error.message);
+    } else {
+      console.log(' Supabase connected successfully!');
+    }
+  })();
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
+  const port = process.env.PORT || 5000;
+  const server = app.listen(port, () => {
+    process.stdout.write(`${JSON.stringify({ level: 'info', event: 'server_listening', port: Number(port) })}\n`);
+  });
 
+  const shutdown = (signal) => {
+    process.stdout.write(`${JSON.stringify({ level: 'info', event: 'server_shutdown', signal })}\n`);
+    server.close((error) => {
+      if (error) {
+        process.stderr.write(`${JSON.stringify({ level: 'error', event: 'server_close_failed' })}\n`);
+        process.exit(1);
+      }
+      process.exit(0);
+    });
+  };
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('unhandledRejection', () => {
+    process.stderr.write(`${JSON.stringify({ level: 'error', event: 'unhandled_rejection' })}\n`);
+    server.close(() => process.exit(1));
+  });
+
+  return server;
+};
+
+if (require.main === module) startServer();
+
+module.exports = startServer;
